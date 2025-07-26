@@ -1,0 +1,172 @@
+// ProtocolDeviation.java
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+public class ProtocolDeviation {
+    private String deviationId;
+    private String patientId;
+    private String protocolSection;
+    private String description;
+    private String impactOnPatientSafety;
+    private String impactOnDataIntegrity;
+    private String correctiveAction;
+    private String preventiveAction;
+    private String reportedByInvestigatorId;
+    private LocalDateTime dateOfDeviation;
+    private LocalDateTime dateReported;
+    private DeviationStatus status; // E.g., LOGGED, REVIEWED_BY_SPONSOR, CLOSED
+
+    public enum DeviationStatus {
+        LOGGED,
+        REVIEWED_BY_SPONSOR,
+        CLOSED,
+        PENDING_IRB_REVIEW
+    }
+
+    public ProtocolDeviation(String patientId, String protocolSection, String description,
+                             String reportedByInvestigatorId, LocalDate dateOfDeviation) {
+        this.deviationId = UUID.randomUUID().toString(); // Unique ID for the deviation
+        this.patientId = patientId;
+        this.protocolSection = protocolSection;
+        this.description = description;
+        this.reportedByInvestigatorId = reportedByInvestigatorId;
+        this.dateOfDeviation = dateOfDeviation.atStartOfDay(); // Assuming start of day
+        this.dateReported = LocalDateTime.now();
+        this.status = DeviationStatus.LOGGED;
+    }
+
+    // Getters
+    public String getDeviationId() { return deviationId; }
+    public String getPatientId() { return patientId; }
+    public String getProtocolSection() { return protocolSection; }
+    public String getDescription() { return description; }
+    public String getImpactOnPatientSafety() { return impactOnPatientSafety; }
+    public String getImpactOnDataIntegrity() { return impactOnDataIntegrity; }
+    public String getCorrectiveAction() { return correctiveAction; }
+    public String getPreventiveAction() { return preventiveAction; }
+    public String getReportedByInvestigatorId() { return reportedByInvestigatorId; }
+    public LocalDateTime getDateOfDeviation() { return dateOfDeviation; }
+    public LocalDateTime getDateReported() { return dateReported; }
+    public DeviationStatus getStatus() { return status; }
+
+    // Setters for actions taken/review
+    public void setImpactOnPatientSafety(String impactOnPatientSafety) {
+        this.impactOnPatientSafety = impactOnPatientSafety;
+    }
+    public void setImpactOnDataIntegrity(String impactOnDataIntegrity) {
+        this.impactOnDataIntegrity = impactOnDataIntegrity;
+    }
+    public void setCorrectiveAction(String correctiveAction) {
+        this.correctiveAction = correctiveAction;
+    }
+    public void setPreventiveAction(String preventiveAction) {
+        this.preventiveAction = preventiveAction;
+    }
+    public void setStatus(DeviationStatus status) {
+        this.status = status;
+    }
+
+    @Override
+    public String toString() {
+        return "ProtocolDeviation{" +
+               "deviationId='" + deviationId + '\'' +
+               ", patientId='" + patientId + '\'' +
+               ", protocolSection='" + protocolSection + '\'' +
+               ", description='" + description + '\'' +
+               ", status=" + status +
+               '}';
+    }
+}
+
+// InvestigatorLog.java (Conceptual Investigator's Log for Deviations)
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+public class InvestigatorLog {
+    private List<ProtocolDeviation> deviations; // In a real system, this would be backed by a database
+
+    public InvestigatorLog() {
+        this.deviations = new ArrayList<>();
+    }
+
+    public void logDeviation(ProtocolDeviation deviation) {
+        deviations.add(deviation);
+        System.out.println("Deviation logged: " + deviation.getDeviationId());
+    }
+
+    public Optional<ProtocolDeviation> getDeviationById(String deviationId) {
+        return deviations.stream()
+                         .filter(d -> d.getDeviationId().equals(deviationId))
+                         .findFirst();
+    }
+
+    public List<ProtocolDeviation> getDeviationsByPatient(String patientId) {
+        return deviations.stream()
+                         .filter(d -> d.getPatientId().equals(patientId))
+                         .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+    }
+
+    public void updateDeviation(String deviationId, String impactSafety, String impactData,
+                                String corrective, String preventive, ProtocolDeviation.DeviationStatus newStatus) {
+        getDeviationById(deviationId).ifPresent(dev -> {
+            dev.setImpactOnPatientSafety(impactSafety);
+            dev.setImpactOnDataIntegrity(impactData);
+            dev.setCorrectiveAction(corrective);
+            dev.setPreventiveAction(preventive);
+            dev.setStatus(newStatus);
+            System.out.println("Deviation " + deviationId + " updated.");
+        });
+    }
+
+    // ... methods to query and report deviations
+}
+
+// MainInvestigatorProcess.java (Demonstration of usage)
+import java.time.LocalDate;
+
+public class MainInvestigatorProcess {
+    public static void main(String[] args) {
+        InvestigatorLog investigatorLog = new InvestigatorLog();
+
+        // Investigator logs a deviation
+        ProtocolDeviation dev1 = new ProtocolDeviation(
+            "PAT-005",
+            "3.2.1 Dosing Schedule",
+            "Patient PAT-005 missed dose on 2024-07-20 due to travel.",
+            "INV-Dr.Sharma",
+            LocalDate.of(2024, 7, 20)
+        );
+        investigatorLog.logDeviation(dev1);
+
+        ProtocolDeviation dev2 = new ProtocolDeviation(
+            "PAT-010",
+            "4.1.2 Lab Procedures",
+            "Wrong blood tube used for sample collection on 2024-07-22, sample invalid.",
+            "INV-Dr.Sharma",
+            LocalDate.of(2024, 7, 22)
+        );
+        investigatorLog.logDeviation(dev2);
+
+        System.out.println("\n--- Initial Deviations ---");
+        investigatorLog.getDeviationById(dev1.getDeviationId()).ifPresent(System.out::println);
+        investigatorLog.getDeviationById(dev2.getDeviationId()).ifPresent(System.out::println);
+
+        // Investigator adds details and updates status for dev1
+        investigatorLog.updateDeviation(
+            dev1.getDeviationId(),
+            "Minor, no direct patient harm observed.",
+            "Potential impact on PK data point for that day.",
+            "Provided catch-up dose on 2024-07-21 as per protocol guidance for missed doses.",
+            "Reinforced training on travel plans with patients.",
+            ProtocolDeviation.DeviationStatus.REVIEWED_BY_SPONSOR
+        );
+
+        System.out.println("\n--- Updated Deviation ---");
+        investigatorLog.getDeviationById(dev1.getDeviationId()).ifPresent(System.out::println);
+
+        System.out.println("\n--- Deviations for PAT-005 ---");
+        investigatorLog.getDeviationsByPatient("PAT-005").forEach(System.out::println);
+    }
+}
