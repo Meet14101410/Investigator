@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reported Adverse Events</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f9f9f9; }
+        .container { background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 900px; margin: auto; }
+        h2 { color: #333; text-align: center; margin-bottom: 25px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .no-aes { text-align: center; color: #777; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Reported Adverse Events</h2>
+        {% if aes %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient ID</th>
+                    <th>AE Term</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Severity</th>
+                    <th>Relationship</th>
+                    <th>Outcome</th>
+                    <th>Reported At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ae in aes %}
+                <tr>
+                    <td>{{ ae.patient_id }}</td>
+                    <td>{{ ae.ae_term }}</td>
+                    <td>{{ ae.start_date }}</td>
+                    <td>{{ ae.end_date if ae.end_date else 'N/A' }}</td>
+                    <td>{{ ae.severity }}</td>
+                    <td>{{ ae.relationship }}</td>
+                    <td>{{ ae.outcome }}</td>
+                    <td>{{ ae.reported_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="no-aes">No Adverse Events reported yet.</p>
+        {% endif %}
+        <p style="text-align: center; margin-top: 20px;"><a href="/ae_report_form">Report New AE</a></p>
+    </div>
+</body>
+</html>
