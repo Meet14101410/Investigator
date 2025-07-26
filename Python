@@ -1,0 +1,86 @@
+# Save this as app_investigator.py
+from flask import Flask, request, render_template, redirect, url_for
+from datetime import datetime
+
+app = Flask(__name__)
+
+# --- In a real application, this would be a database model/ORM ---
+class AdverseEvent:
+    def __init__(self, patient_id, ae_term, start_date, end_date, severity, relationship, action_taken, outcome):
+        self.patient_id = patient_id
+        self.ae_term = ae_term
+        self.start_date = start_date
+        self.end_date = end_date
+        self.severity = severity
+        self.relationship = relationship
+        self.action_taken = action_taken
+        self.outcome = outcome
+        self.reported_at = datetime.now()
+
+    def __repr__(self):
+        return (f"<AdverseEvent ID: {self.patient_id}, Term: {self.ae_term}, "
+                f"Severity: {self.severity}, Outcome: {self.outcome}>")
+
+# In-memory storage for demonstration (replace with database in production)
+adverse_events_db = []
+# -----------------------------------------------------------------
+
+@app.route('/ae_report_form')
+def ae_report_form():
+    # You would need to place the HTML above in a 'templates' folder as 'ae_report.html'
+    return render_template('ae_report.html')
+
+@app.route('/submit_ae', methods=['POST'])
+def submit_ae():
+    if request.method == 'POST':
+        try:
+            patient_id = request.form['patientID']
+            ae_term = request.form['aeTerm']
+            start_date_str = request.form['startDate']
+            end_date_str = request.form.get('endDate', '') # Optional
+            severity = request.form['severity']
+            relationship = request.form['relationship']
+            action_taken = request.form.get('actionTaken', '')
+            outcome = request.form['outcome']
+
+            # Convert date strings to datetime objects
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date() if end_date_str else None
+
+            new_ae = AdverseEvent(
+                patient_id=patient_id,
+                ae_term=ae_term,
+                start_date=start_date,
+                end_date=end_date,
+                severity=severity,
+                relationship=relationship,
+                action_taken=action_taken,
+                outcome=outcome
+            )
+            adverse_events_db.append(new_ae)
+
+            print(f"New AE Reported: {new_ae}")
+            # In a real system:
+            # - Save to database
+            # - If severity is 'Severe' and relationship 'Yes', trigger SAE reporting workflow
+            # - Send notifications to relevant personnel (e.g., CRA, Sponsor safety team)
+
+            return "Adverse Event reported successfully! (Check server console for details)"
+
+        except Exception as e:
+            print(f"Error processing AE report: {e}")
+            return f"Error submitting AE report: {e}", 500
+
+@app.route('/view_aes')
+def view_aes():
+    # A simple page to view submitted AEs
+    return render_template('view_aes.html', aes=adverse_events_db)
+
+if __name__ == '__main__':
+    # To run:
+    # 1. pip install flask
+    # 2. Save the HTML code above as 'templates/ae_report.html' in the same directory as this Python file.
+    # 3. Create a simple 'templates/view_aes.html' (example below).
+    # 4. python app_investigator.py
+    # 5. Open your browser to http://127.0.0.1:5000/ae_report_form
+    app.run(debug=True)
