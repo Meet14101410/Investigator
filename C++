@@ -1,0 +1,119 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+#include <ctime> // For time_t and time
+#include <iomanip> // For std::put_time
+
+// Structure for a single transaction (dispense or receipt)
+struct IPTransaction {
+    std::string transactionId;
+    std::string patientId; // Optional, if for dispensing
+    std::string investigatorId;
+    std::string ipBatchNumber;
+    int quantity; // Positive for receipt, negative for dispense
+    std::string transactionType; // "RECEIPT", "DISPENSE", "RETURN", "DESTRUCTION"
+    time_t transactionDate; // Timestamp of the transaction
+
+    IPTransaction(const std::string& tid, const std::string& pid, const std::string& invId,
+                  const std::string& batch, int qty, const std::string& type, time_t date)
+        : transactionId(tid), patientId(pid), investigatorId(invId),
+          ipBatchNumber(batch), quantity(qty), transactionType(type), transactionDate(date) {}
+
+    void print() const {
+        char buffer[80];
+        struct tm *lt = localtime(&transactionDate);
+        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", lt);
+
+        std::cout << "  Transaction ID: " << transactionId << std::endl;
+        std::cout << "  Patient ID: " << (patientId.empty() ? "N/A" : patientId) << std::endl;
+        std::cout << "  Investigator: " << investigatorId << std::endl;
+        std::cout << "  Batch: " << ipBatchNumber << std::endl;
+        std::cout << "  Quantity: " << quantity << std::endl;
+        std::cout << "  Type: " << transactionType << std::endl;
+        std::cout << "  Date: " << buffer << std::endl;
+        std::cout << "--------------------" << std::endl;
+    }
+};
+
+// Class to manage IP accountability at a site
+class IPAccountability {
+public:
+    // Constructor to set initial inventory
+    IPAccountability(const std::string& siteId, const std::string& ipName)
+        : siteId_(siteId), ipName_(ipName), currentInventory_(0) {
+        std::cout << "IP Accountability system initialized for Site: " << siteId_
+                  << ", Product: " << ipName_ << std::endl;
+    }
+
+    void recordReceipt(const std::string& investigatorId, const std::string& batchNumber, int quantity) {
+        if (quantity <= 0) {
+            std::cerr << "Error: Receipt quantity must be positive." << std::endl;
+            return;
+        }
+        std::string transactionId = generateTransactionId();
+        IPTransaction transaction(transactionId, "", investigatorId, batchNumber, quantity, "RECEIPT", time(nullptr));
+        transactions_.push_back(transaction);
+        currentInventory_ += quantity;
+        std::cout << "Recorded IP receipt. Quantity: " << quantity << ", Current Inventory: " << currentInventory_ << std::endl;
+    }
+
+    void recordDispense(const std::string& patientId, const std::string& investigatorId, const std::string& batchNumber, int quantity) {
+        if (quantity <= 0) {
+            std::cerr << "Error: Dispense quantity must be positive." << std::endl;
+            return;
+        }
+        if (currentInventory_ < quantity) {
+            std::cerr << "Error: Insufficient inventory to dispense " << quantity << ". Current: " << currentInventory_ << std::endl;
+            return;
+        }
+        std::string transactionId = generateTransactionId();
+        IPTransaction transaction(transactionId, patientId, investigatorId, batchNumber, -quantity, "DISPENSE", time(nullptr));
+        transactions_.push_back(transaction);
+        currentInventory_ -= quantity;
+        std::cout << "Recorded IP dispense to Patient " << patientId << ". Quantity: " << quantity << ", Current Inventory: " << currentInventory_ << std::endl;
+    }
+
+    int getCurrentInventory() const {
+        return currentInventory_;
+    }
+
+    void printAllTransactions() const {
+        std::cout << "\n--- IP Transactions for " << ipName_ << " at " << siteId_ << " ---" << std::endl;
+        if (transactions_.empty()) {
+            std::cout << "No transactions recorded yet." << std::endl;
+            return;
+        }
+        for (const auto& trans : transactions_) {
+            trans.print();
+        }
+    }
+
+private:
+    std::string siteId_;
+    std::string ipName_;
+    int currentInventory_;
+    std::vector<IPTransaction> transactions_; // In real system, this would be a database table
+
+    std::string generateTransactionId() {
+        // Simple unique ID generation for demonstration
+        static int counter = 0;
+        return siteId_ + "-" + std::to_string(++counter);
+    }
+};
+
+int main() {
+    IPAccountability ipTracker("Site-001", "Investigational Drug X");
+
+    ipTracker.recordReceipt("Dr. Singh", "BATCH-X-001", 100);
+    ipTracker.recordDispense("P001", "Dr. Singh", "BATCH-X-001", 10);
+    ipTracker.recordDispense("P002", "Dr. Singh", "BATCH-X-001", 20);
+    ipTracker.recordReceipt("Dr. Singh", "BATCH-X-002", 50);
+    ipTracker.recordDispense("P003", "Dr. Singh", "BATCH-X-002", 5);
+    ipTracker.recordDispense("P004", "Dr. Singh", "BATCH-X-001", 80); // Should fail
+
+    std::cout << "\nFinal Inventory: " << ipTracker.getCurrentInventory() << std::endl;
+    ipTracker.printAllTransactions();
+
+    return 0;
+}
