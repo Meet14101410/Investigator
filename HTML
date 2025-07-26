@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adverse Event (AE) Reporting</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f9f9f9; }
+        .container { background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 800px; margin: auto; }
+        h2 { color: #333; text-align: center; margin-bottom: 25px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        input[type="text"], input[type="date"], textarea, select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        textarea { resize: vertical; min-height: 80px; }
+        .form-group { margin-bottom: 20px; }
+        .radio-group label { display: inline-block; margin-right: 15px; font-weight: normal; }
+        .radio-group input[type="radio"] { margin-right: 5px; }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error-message { color: red; font-size: 0.9em; margin-top: -15px; margin-bottom: 10px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Adverse Event (AE) Reporting Form</h2>
+        <form id="aeReportForm" action="/submit_ae" method="POST">
+            <div class="form-group">
+                <label for="patientID">Patient ID:</label>
+                <input type="text" id="patientID" name="patientID" required>
+                <div class="error-message" id="patientIDError">Patient ID is required.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="aeTerm">Adverse Event Term:</label>
+                <input type="text" id="aeTerm" name="aeTerm" placeholder="e.g., Headache, Nausea" required>
+                <div class="error-message" id="aeTermError">Adverse Event Term is required.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="startDate">AE Start Date:</label>
+                <input type="date" id="startDate" name="startDate" required>
+                <div class="error-message" id="startDateError">Start Date is required.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="endDate">AE End Date (if resolved):</label>
+                <input type="date" id="endDate" name="endDate">
+            </div>
+
+            <div class="form-group">
+                <label for="severity">Severity:</label>
+                <select id="severity" name="severity" required>
+                    <option value="">Select Severity</option>
+                    <option value="Mild">Mild</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Severe">Severe</option>
+                </select>
+                <div class="error-message" id="severityError">Severity is required.</div>
+            </div>
+
+            <div class="form-group">
+                <label>Relationship to Investigational Product:</label>
+                <div class="radio-group">
+                    <input type="radio" id="relatedYes" name="relationship" value="Yes" required>
+                    <label for="relatedYes">Yes</label>
+                    <input type="radio" id="relatedNo" name="relationship" value="No">
+                    <label for="relatedNo">No</label>
+                    <input type="radio" id="relatedUnknown" name="relationship" value="Unknown">
+                    <label for="relatedUnknown">Unknown</label>
+                </div>
+                <div class="error-message" id="relationshipError">Relationship is required.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="actionTaken">Action Taken (e.g., Dose reduced, Drug stopped):</label>
+                <textarea id="actionTaken" name="actionTaken"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="outcome">Outcome:</label>
+                <select id="outcome" name="outcome" required>
+                    <option value="">Select Outcome</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Resolving">Resolving</option>
+                    <option value="Not Resolved">Not Resolved</option>
+                    <option value="Fatal">Fatal</option>
+                    <option value="Unknown">Unknown</option>
+                </select>
+                <div class="error-message" id="outcomeError">Outcome is required.</div>
+            </div>
+
+            <button type="submit">Submit AE Report</button>
+        </form>
+    </div>
+
+    <script>
+        // Basic client-side validation using JavaScript (for demonstration)
+        document.getElementById('aeReportForm').addEventListener('submit', function(event) {
+            let isValid = true;
+            const requiredFields = ['patientID', 'aeTerm', 'startDate', 'severity', 'outcome'];
+
+            requiredFields.forEach(fieldId => {
+                const input = document.getElementById(fieldId);
+                const error = document.getElementById(fieldId + 'Error');
+                if (!input.value.trim()) {
+                    error.style.display = 'block';
+                    isValid = false;
+                } else {
+                    error.style.display = 'none';
+                }
+            });
+
+            // Specific check for radio buttons
+            const relationshipRadios = document.getElementsByName('relationship');
+            let isRelationshipSelected = false;
+            for (const radio of relationshipRadios) {
+                if (radio.checked) {
+                    isRelationshipSelected = true;
+                    break;
+                }
+            }
+            const relationshipError = document.getElementById('relationshipError');
+            if (!isRelationshipSelected) {
+                relationshipError.style.display = 'block';
+                isValid = false;
+            } else {
+                relationshipError.style.display = 'none';
+            }
+
+            if (!isValid) {
+                event.preventDefault(); // Stop form submission if validation fails
+                alert('Please fill in all required fields.');
+            }
+        });
+    </script>
+</body>
+</html>
